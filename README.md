@@ -38,7 +38,7 @@ indels for germline and cancer sequencing applications. *Bioinformatics*,
 License
 -------
 
-Manta source code is provided under the [GPLv3 license](LICENSE.txt).
+Manta source code is provided under the [Polyform strict license](LICENSE.txt).
 Manta includes several third party packages provided under other
 open source licenses, please see [COPYRIGHT.txt](COPYRIGHT.txt)
 for additional details.
