@@ -84,6 +84,12 @@ superset(HTSLIB_LIBRARY "${HTSLIB_DIR}/libhts.a")
 #set(HTSLIB_CFLAGS '-O0 -g')
 #set(HTSLIB_CONFIGOPT CFLAGS=${HTSLIB_CFLAGS} LDFLAGS=${HTSLIB_CFLAGS})
 
+# Pass zlib include/lib paths to htslib configure so it can find zlib headers
+if (ZLIB_FOUND)
+    get_filename_component(ZLIB_LIB_DIR "${ZLIB_LIBRARIES}" DIRECTORY)
+    set(HTSLIB_CONFIGOPT CFLAGS=-I${ZLIB_INCLUDE_DIRS} LDFLAGS=-L${ZLIB_LIB_DIR})
+endif ()
+
 add_custom_command(
     OUTPUT ${HTSLIB_DIR}
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${HTSLIB_DIR}"
