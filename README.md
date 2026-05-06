@@ -1,3 +1,102 @@
+> **This is a patched fork of Manta v1.6.0.**
+> See [Patch Notes](#patch-notes) and [Build Instructions](#building-the-patched-binary) below.
+
+---
+
+Patch Notes
+-----------
+
+### Change: `MAX_QSCORE` raised from 70 to 93
+
+**File:** `src/c++/lib/blt_util/qscore_cache.hpp`
+
+**Original line:**
+```cpp
+enum { MAX_QSCORE = 70, MAX_MAP = 90 };
+```
+
+**Patched line:**
+```cpp
+enum { MAX_QSCORE = 93, MAX_MAP = 90 };
+```
+
+**Reason:**  
+cfDNA consensus reads produced by [fgbio](http://fulcrumgenomics.github.io/fgbio/)
+`CallMolecularConsensusReads` can carry base quality (BQ) scores higher than 70.
+Stock Manta 1.6.0 hard-codes `MAX_QSCORE = 70` and aborts with a fatal error
+(`high_qscore_error`) whenever it encounters a read with BQ > 70.  
+Raising the limit to 93 (the maximum value representable in a Phred+33 encoded
+FASTQ/BAM) allows Manta to process these BAMs without prior quality-capping.
+
+**Impact:** Read-level BQ values are clamped at the cache boundary; changing the
+limit does not alter the SV-calling algorithm or scoring logic.
+
+---
+
+Building the Patched Binary
+---------------------------
+
+### 1. Prerequisites
+
+- Linux x86-64
+- [Conda / Mamba](https://conda-forge.org/miniforge/)
+
+### 2. Create the build environment
+
+```bash
+conda env create -f build-env.yaml
+# creates the conda env "manta_build_py2"
+```
+
+**Why a dedicated env?**  
+Manta's build system has several hard requirements that conflict with modern
+toolchain defaults:
+
+| Requirement | Reason |
+|---|---|
+| **Python 2.7** | `CMakeLists.txt` calls `find_package(PythonInterp 2)` and all workflow scripts are Python 2. |
+| **CMake ≤ 3.x** | CMake ≥ 4.0 removed `FindBoost` and `FindPythonInterp`, which this project depends on. Tested with `cmake=3.31.8`. |
+| **GCC/G++ 11.x** | GCC ≥ 15 breaks the bundled Boost 1.58 bootstrap. |
+| **No conda Boost** | Manta bootstraps Boost 1.58 from a bundled tarball. Installing `boost-cpp` into the build env causes a header/library version mismatch ("Boost.Math requires C++14"). Do not add boost to `build-env.yaml`. |
+
+### 3. Build and install
+
+```bash
+conda activate manta_build_py2
+bash build-patched.sh [--install-dir ./install] [--jobs 4]
+```
+
+Default install location: `./install/` (relative to repo root).
+
+### 4. Binaries produced
+
+All five C++ executables share the same internal serialization format for
+`svLocusGraph.bin`. You **must replace all five** together when deploying;
+replacing only a subset causes a fatal "unsupported version" deserialization
+error at runtime.
+
+```
+install/libexec/EstimateSVLoci
+install/libexec/MergeSVLoci
+install/libexec/CheckSVLoci
+install/libexec/SummarizeSVLoci
+install/libexec/GenerateSVCandidates
+```
+
+### 5. Deploying into a Docker image (recommended)
+
+The binaries are statically linked (`-static-libgcc -static-libstdc++`) and
+have no extra runtime dependencies. Copy them directly into the conda Manta
+install without rebuilding inside Docker:
+
+```dockerfile
+# Copy all five patched binaries over the conda-installed stock ones.
+# The Python workflow scripts (configManta.py etc.) remain untouched.
+COPY resources/bin/manta-patched/ /opt/conda/envs/sv_tools/libexec/
+```
+
+---
+
 Manta Structural Variant Caller
 ===============================
 

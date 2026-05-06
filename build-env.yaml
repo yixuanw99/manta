@@ -1,0 +1,22 @@
+name: manta_build_py2
+# Conda environment for building the patched Manta from source.
+#
+# Key constraints:
+#   - python=2.7  : Manta's CMakeLists.txt requires Python 2 for the workflow scripts.
+#   - cmake=3.31.x: CMake >=4.x removed deprecated modules that Manta's CMakeLists.txt
+#                   depends on (cmake_minimum_required <3.10, FindBoost, FindPythonInterp).
+#   - gcc/g++ 11.x: GCC >=15 breaks old Boost 1.58 bootstrap; 11.x is the proven safe version.
+#   - NO boost-cpp  : do NOT install conda Boost. Manta bootstraps its own Boost 1.58 from
+#                   the bundled tarball. Mixing conda Boost 1.85 headers causes a
+#                   "Boost.Math requires C++14" build failure.
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=2.7
+  - cmake=3.31.8
+  - make
+  - gcc_linux-64=11.4.0
+  - gxx_linux-64=11.4.0
+  - binutils_linux-64
+  - zlib
